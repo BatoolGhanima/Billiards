@@ -1,4 +1,4 @@
-// src/state.js
+// src/core/state.js
 export const state = {
   started: false,
   scene: null,

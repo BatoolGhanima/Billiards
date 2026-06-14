@@ -1,4 +1,3 @@
-<!-- index.html (Simple & clean start screen - no instructions) -->
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -11,7 +10,6 @@
     body { overflow: hidden; background: #05060a; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
     canvas { display: block; }
 
-    /* ===== Start Screen ===== */
     #startScreen {
       position: fixed;
       inset: 0;
@@ -21,7 +19,6 @@
       color: #fff;
     }
 
-    /* Background */
     #startScreen .bg {
       position: absolute;
       inset: 0;
@@ -32,7 +29,6 @@
       overflow: hidden;
     }
 
-    /* Soft moving dots */
     #startScreen .bg::before {
       content: "";
       position: absolute;
@@ -52,7 +48,6 @@
       100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
 
-    /* Card */
     .startCard {
       position: relative;
       width: min(560px, 92vw);
@@ -66,36 +61,34 @@
     }
 
     .logoDot {
-      width: 16px;
-      height: 16px;
+      width: 16px; height: 16px;
       margin: 0 auto 14px;
       border-radius: 50%;
       background: #2d6a4f;
       box-shadow: 0 0 22px rgba(45,106,79,0.95);
     }
 
-    h1 {
-      font-size: 22px;
-      margin-bottom: 8px;
-      letter-spacing: 0.4px;
-    }
+    h1 { font-size: 22px; margin-bottom: 8px; letter-spacing: 0.4px; }
 
-    .sub {
-      font-size: 13px;
-      opacity: 0.75;
-      line-height: 1.6;
-      margin-bottom: 18px;
+    .sub { font-size: 13px; opacity: 0.75; line-height: 1.6; margin-bottom: 18px; }
+
+    /* Controls hint */
+    .controls {
+      font-size: 12px;
+      opacity: 0.6;
+      margin-bottom: 20px;
+      line-height: 1.8;
+      text-align: left;
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      padding: 10px 14px;
     }
+    .controls b { color: #43aa8b; }
 
     #startBtn {
-      appearance: none;
-      border: none;
-      cursor: pointer;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 800;
-      color: #ffffff;
+      appearance: none; border: none; cursor: pointer;
+      padding: 12px 18px; border-radius: 12px;
+      font-size: 15px; font-weight: 800; color: #ffffff;
       background: linear-gradient(135deg, #2d6a4f 0%, #43aa8b 100%);
       box-shadow: 0 14px 30px rgba(45,106,79,0.35);
       transition: transform 0.08s ease, filter 0.2s ease;
@@ -104,31 +97,32 @@
     #startBtn:hover { filter: brightness(1.06); }
     #startBtn:active { transform: scale(0.985); }
 
-    /* Optional fade-out (if you want later) */
-    #startScreen.fadeOut {
-      animation: fadeOut 0.35s ease forwards;
-    }
-    @keyframes fadeOut {
-      to { opacity: 0; visibility: hidden; }
-    }
+    #startScreen.fadeOut { animation: fadeOut 0.35s ease forwards; }
+    @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
   </style>
 </head>
 
 <body>
-  <!-- Start Screen -->
   <div id="startScreen">
     <div class="bg"></div>
-
     <div class="startCard">
       <div class="logoDot"></div>
       <h1>3D Billiard</h1>
-      <div class="sub">Ready?</div>
-      <button id="startBtn">Start</button>
+      <div class="sub">Ready to play?</div>
+
+      <div class="controls">
+        <b>L / R</b> — Rotate cue &nbsp;|&nbsp; <b>P</b> — Pull back cue<br>
+        <b>Space</b> — Strike &nbsp;|&nbsp; <b>WASD</b> — Move camera<br>
+        <b>Arrows</b> — Rotate camera &nbsp;|&nbsp; <b>Q / E</b> — Up / Down<br>
+        <b>Shift</b> — Fast camera
+      </div>
+
+      <button id="startBtn">▶ Start Game</button>
     </div>
   </div>
 
-  <!-- Three.js -->
+  <!-- Three.js global build (for main.js which uses global THREE) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="src/main.js"></script>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
