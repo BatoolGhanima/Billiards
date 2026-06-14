@@ -1,0 +1,134 @@
+<!-- index.html (Simple & clean start screen - no instructions) -->
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Billiard Game</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #05060a; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+    canvas { display: block; }
+
+    /* ===== Start Screen ===== */
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      color: #fff;
+    }
+
+    /* Background */
+    #startScreen .bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(900px 450px at 70% 20%, rgba(45,106,79,0.28), transparent 60%),
+        radial-gradient(800px 500px at 20% 80%, rgba(67,170,139,0.18), transparent 60%),
+        linear-gradient(180deg, #05060a 0%, #0b0f14 60%, #05060a 100%);
+      overflow: hidden;
+    }
+
+    /* Soft moving dots */
+    #startScreen .bg::before {
+      content: "";
+      position: absolute;
+      width: 140vmax;
+      height: 140vmax;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: 34px 34px;
+      opacity: 0.18;
+      animation: drift 22s linear infinite;
+    }
+
+    @keyframes drift {
+      0%   { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Card */
+    .startCard {
+      position: relative;
+      width: min(560px, 92vw);
+      border-radius: 18px;
+      padding: 30px 26px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    .logoDot {
+      width: 16px;
+      height: 16px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: #2d6a4f;
+      box-shadow: 0 0 22px rgba(45,106,79,0.95);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      letter-spacing: 0.4px;
+    }
+
+    .sub {
+      font-size: 13px;
+      opacity: 0.75;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    #startBtn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      background: linear-gradient(135deg, #2d6a4f 0%, #43aa8b 100%);
+      box-shadow: 0 14px 30px rgba(45,106,79,0.35);
+      transition: transform 0.08s ease, filter 0.2s ease;
+      min-width: 170px;
+    }
+    #startBtn:hover { filter: brightness(1.06); }
+    #startBtn:active { transform: scale(0.985); }
+
+    /* Optional fade-out (if you want later) */
+    #startScreen.fadeOut {
+      animation: fadeOut 0.35s ease forwards;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; visibility: hidden; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <div class="bg"></div>
+
+    <div class="startCard">
+      <div class="logoDot"></div>
+      <h1>3D Billiard</h1>
+      <div class="sub">Ready?</div>
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
