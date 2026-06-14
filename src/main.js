@@ -9,15 +9,16 @@ import { setupKeyboard } from "./controls/input.js";
 import { updateKeyboardCamera } from "./controls/cameraKeyboard.js";
 
 import { updateLinearMotion } from "./physics/motion.js";
-// FIX: added updateStrikeAnimation to the import list
 import {
   updateCue,
   pullCue,
   rotateCue,
   strikeCue,
-  updateStrikeAnimation   // ← NEW
+  updateStrikeAnimation
 } from "./physics/cuePhysics.js";
 import { solveWallCollision } from "./physics/wall.js";
+import { solveBallCollisions }  from "./physics/ballCollisions.js";  
+import { detectPockets }        from "./physics/pocketPhysics.js";
 
 
 window.addEventListener("load", () => {
@@ -71,65 +72,69 @@ function initThree() {
 function buildWorld() {
   const t = buildTable(state.scene, state.TABLE);
   state.tableSurface = t.tableSurface;
-  state.walls = t.walls;
+  state.walls        = t.walls;
 
-  state.pockets = createPockets(state.scene, state.TABLE);
-  state.balls   = createBalls(state.scene, state.TABLE, state.BALL);
+  state.pockets  = createPockets(state.scene, state.TABLE);
+  state.balls    = createBalls(state.scene, state.TABLE, state.BALL);
 
-  const cueBall = state.balls.find(b => b.name === "cue");
+  const cueBall  = state.balls.find(b => b.name === "cue");
   state.cueStick = createCueStick(state.scene, cueBall.mesh);
 
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space") {
-      // FIX: only START the animation — ball doesn't move until tip reaches it
       strikeCue(state.cueStick, cueBall);
     }
   });
 }
 
 
-// Helper: are ANY balls still moving?
 function anyBallMoving() {
-  return state.balls.some(b => b.velocity.length() > 0.05);
+  return state.balls.some(b => !b.pocketed && b.velocity.length() > 0.4);
 }
 
 
 function animate() {
   requestAnimationFrame(animate);
 
-  const dt = Math.min(state.clock.getDelta(), 0.033);
+  const dt      = Math.min(state.clock.getDelta(), 0.033);
   const cueBall = state.balls.find(b => b.name === "cue");
   if (!cueBall || !state.cueStick) return;
 
-  // ── Physics: move all balls ──────────────────────────────────────────────
+  // ── 1. حركة كل الكرات (احتكاك + مقاومة هواء + دوران) ───────────────────
   for (const ball of state.balls) {
+    if (ball.pocketed) continue;
     updateLinearMotion(ball, dt);
     solveWallCollision(ball, state.TABLE);
   }
 
-  // ── Cue stick ────────────────────────────────────────────────────────────
+  // ── 2. حل تصادمات الكرات ببعضها (Impulse Iteration) ─────────────────────
+  // يشمل: موجة الكسر، التوزيع التسلسلي، Dead Kiss، Split
+  solveBallCollisions(state.balls);
+
+  // ── 3. كشف الجيوب — تحقق من سقوط الكرات ────────────────────────────────
+  detectPockets(state.balls, state.pockets, state.scene);
+
+  // ── 4. العصا ─────────────────────────────────────────────────────────────
   const ballsMoving = anyBallMoving();
   const striking    = state.cueStick.userData.striking;
 
-  // FIX: hide cue only when balls are rolling AND no swing is in progress
   if (ballsMoving && !striking) {
     state.cueStick.visible = false;
   } else {
-    // Allow aiming / pulling only when everything is still and not swinging
-    if (!ballsMoving && !striking) {
-      if (state.input.keys["KeyL"]) rotateCue(state.cueStick,  1, dt);  // aim left
-      if (state.input.keys["KeyR"]) rotateCue(state.cueStick, -1, dt);  // aim right
-      if (state.input.keys["KeyP"]) pullCue(state.cueStick, dt);        // pull back
+    if (!ballsMoving && !striking && !cueBall.pocketed) {
+      if (state.input.keys["KeyL"]) rotateCue(state.cueStick,  1, dt);
+      if (state.input.keys["KeyR"]) rotateCue(state.cueStick, -1, dt);
+      if (state.input.keys["KeyP"]) pullCue(state.cueStick, dt);
     }
 
-    // FIX: advance the strike animation every frame (moves cue → ball contact)
     updateStrikeAnimation(state.cueStick, dt);
 
-    // Keep cue aligned with ball position
-    updateCue(state.cueStick, cueBall.mesh);
+    if (!cueBall.pocketed) {
+      updateCue(state.cueStick, cueBall.mesh);
+    }
   }
 
-  // ── Camera ───────────────────────────────────────────────────────────────
+  // ── 5. الكاميرا ──────────────────────────────────────────────────────────
   updateKeyboardCamera(state, dt);
 
   state.renderer.render(state.scene, state.camera);

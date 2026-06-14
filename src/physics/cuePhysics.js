@@ -8,7 +8,7 @@
 // 5. rotateCue: speed constant raised from 0.05 → 1.5 (was nearly imperceptible)
 
 const PULL_SPEED   = 18;   // units/sec — pulling back
-const STRIKE_SPEED = 140;  // units/sec — forward swing (fast snap)
+const STRIKE_SPEED = 500;  // units/sec — forward swing (fast snap)
 const ROTATE_SPEED = 1.5;  // rad/sec   — left / right aim
 
 // ---------------------------------------------------------------------------
@@ -31,7 +31,7 @@ export function updateCue(cue, cueBallMesh) {
 
   // Distance from ball centre to cue-group centre
   // At pullBack = 0 the tip is flush with the ball surface
-  const distance = 76 + pullBack;
+  const distance = 80 + pullBack;
 
   cue.position.set(
     cueBallMesh.position.x - Math.sin(angle) * distance,
