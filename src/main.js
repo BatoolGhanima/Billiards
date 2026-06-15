@@ -20,20 +20,119 @@ import { solveWallCollision } from "./physics/wall.js";
 import { solveBallCollisions }  from "./physics/ballCollisions.js";  
 import { detectPockets }        from "./physics/pocketPhysics.js";
 
+import { createSettingsPanel }
+from "./settingsPanel.js";
 
 window.addEventListener("load", () => {
-  document.getElementById("startBtn").addEventListener("click", () => {
-    document.getElementById("startScreen").style.display = "none";
-    startGame();
-  });
+
+  document
+.getElementById("backBtn")
+.addEventListener("click", () => {
+
+    location.reload();
+
+});
+
+  const settingsBtn =
+    document.getElementById("settingsBtn");
+
+  const playBtn =
+    document.getElementById("playBtn");
+
+  settingsBtn.addEventListener(
+    "click",
+    openSettings
+  );
+
+  playBtn.addEventListener(
+    "click",
+    startWithSettings
+  );
+
 });
 
 
+function openSettings() {
+
+  document.getElementById(
+    "startScreen"
+  ).style.display = "none";
+
+  document.getElementById(
+    "settingsScreen"
+  ).style.display = "grid";
+
+}
+
+function startWithSettings() {
+
+  state.BALL.r =
+    parseFloat(
+      document.getElementById("ballRadius").value
+    );
+
+  state.BALL.m =
+    parseFloat(
+      document.getElementById("ballMass").value
+    );
+
+  state.physics.gravity =
+    parseFloat(
+      document.getElementById("gravity").value
+    );
+
+  state.physics.airDensity =
+    parseFloat(
+      document.getElementById("airDensity").value
+    );
+
+  state.physics.slideFriction =
+    parseFloat(
+      document.getElementById("slideFriction").value
+    );
+
+  state.physics.rollFriction =
+    parseFloat(
+      document.getElementById("rollFriction").value
+    );
+
+  state.cue.powerFactor =
+    parseFloat(
+      document.getElementById("cuePower").value
+    );
+
+  document.getElementById(
+    "settingsScreen"
+  ).style.display = "none";
+
+  startGame();
+
+}
+
 function startGame() {
+  
+
+  console.log("Ball Radius =", state.BALL.r);
+console.log("Ball Mass =", state.BALL.m);
+
+console.log("Gravity =", state.physics.gravity);
+console.log("Air Density =", state.physics.airDensity);
+
+console.log("Slide Friction =", state.physics.slideFriction);
+console.log("Roll Friction =", state.physics.rollFriction);
+
+console.log("Cue Power =", state.physics.cuePower);
+ 
+  document.getElementById(
+    "backBtn"
+).style.display = "block";
+
+
   initThree();
   setupKeyboard(state);
   buildWorld();
   animate();
+  
 }
 
 
@@ -44,8 +143,13 @@ function initThree() {
   state.camera = new THREE.PerspectiveCamera(
     60, window.innerWidth / window.innerHeight, 0.1, 2000
   );
-  state.camera.position.set(0, 180, 160);
-  state.camera.lookAt(0, 0, 0);
+state.camera.position.set(0, 110, 220);
+
+state.camera.lookAt(
+  0,
+  15,
+  -40
+);
   state.camera.rotation.order = "YXZ";
 
   state.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -87,7 +191,6 @@ function buildWorld() {
   });
 }
 
-
 function anyBallMoving() {
   return state.balls.some(b => !b.pocketed && b.velocity.length() > 0.4);
 }
@@ -125,6 +228,7 @@ function animate() {
       if (state.input.keys["KeyL"]) rotateCue(state.cueStick,  1, dt);
       if (state.input.keys["KeyR"]) rotateCue(state.cueStick, -1, dt);
       if (state.input.keys["KeyP"]) pullCue(state.cueStick, dt);
+      if (state.input.keys["KeyB"]) pullCue(state.cueStick, - dt);
     }
 
     updateStrikeAnimation(state.cueStick, dt);

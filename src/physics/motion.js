@@ -6,14 +6,22 @@
 //   - I = (2/5) * m * r²  لنقل الدوران إلى حركة انتقالية
 //   - انتقال من الانزلاق إلى التدحرج عندما v_slip → 0
 
+
+import { state } from "../core/state.js";
 // ── ثوابت فيزيائية (الوحدات: سم، جرام، ثانية) ───────────────────────────
-const g          = 0.5;     // cm/s² — تسارع الجاذبية
-const rho        = 0.0;   // g/cm³ — كثافة الهواء
-const Cd         = 0.47;      // معامل السحب للكرة الكروية الملساء
-const mu_slide   = 0.15;      // معامل الاحتكاك الانزلاقي على اللباد
-const mu_roll    = 0.012;     // معامل الاحتكاك التدحرجي على اللباد
+  const g = state.physics.gravity;
+
+const rho = state.physics.airDensity;
+
+const Cd = state.physics.dragCoefficient;
+
+const mu_slide = state.physics.slideFriction;
+
+const mu_roll = state.physics.rollFriction;    // معامل الاحتكاك التدحرجي على اللباد
 const STOP_V     = 0.4;       // حد التوقف الخطي (cm/s)
 const STOP_W     = 0.5;       // حد التوقف الزاوي (rad/s)
+
+
 
 export function updateLinearMotion(ball, dt) {
   const v  = ball.velocity.length();

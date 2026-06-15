@@ -31,8 +31,27 @@ export function detectPockets(balls, pockets, scene) {
       const dz   = ball.mesh.position.z - pocketZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
-      if (dist < pocketR * 0.85) {
-        ball.pocketed  = true;
+     if (dist < pocketR + ball.radius * 1.5) {
+
+    // الكرة البيضاء
+    if (ball.name === "cue") {
+
+        ball.velocity.set(0, 0, 0);
+        ball.angularVelocity.set(0, 0, 0);
+
+        // العودة إلى منتصف الطاولة
+        ball.mesh.position.set(
+            0,
+            ball.radius,
+            0
+        );
+
+    }
+
+    // باقي الكرات
+    else {
+
+        ball.pocketed = true;
         ball.sinkDepth = 0;
 
         ball.velocity.set(0, 0, 0);
@@ -40,8 +59,11 @@ export function detectPockets(balls, pockets, scene) {
 
         ball.mesh.position.x = pocketX;
         ball.mesh.position.z = pocketZ;
-        break;
-      }
+
+    }
+
+    break;
+}
     }
   }
 }

@@ -35,13 +35,13 @@ export function updateCue(cue, cueBallMesh) {
 
   cue.position.set(
     cueBallMesh.position.x - Math.sin(angle) * distance,
-    cueBallMesh.position.y,                              // level with ball centre
-    cueBallMesh.position.z + Math.cos(angle) * distance  // FIX: + not –
+    cueBallMesh.position.y + 15,                              // level with ball centre
+    cueBallMesh.position.z + Math.cos(angle) * distance  +5 // FIX: + not –
   );
 
   // FIX: was –angle (tip pointed wrong way); PI–angle aligns thin tip → ball
   cue.rotation.y = Math.PI - angle;
-
+  cue.rotation.x = cue.userData.tilt;
   cue.visible = true;
 }
 

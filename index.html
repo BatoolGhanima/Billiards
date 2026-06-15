@@ -98,11 +98,142 @@
     #startBtn:active { transform: scale(0.985); }
 
     #startScreen.fadeOut { animation: fadeOut 0.35s ease forwards; }
+
+#physicsPanel{
+    position:fixed;
+    top:20px;
+    right:20px;
+
+    width:260px;
+
+    background:rgba(0,0,0,.75);
+
+    color:white;
+
+    padding:15px;
+
+    border-radius:12px;
+
+    z-index:20;
+}
+
+#physicsPanel h3{
+    margin-bottom:10px;
+}
+
+#physicsPanel label{
+    display:block;
+    margin-bottom:10px;
+    font-size:12px;
+}
+
+#physicsPanel input{
+    width:100%;
+    margin-top:4px;
+    padding:4px;
+}
+
+#backBtn{
+    position:fixed;
+
+    top:15px;
+    left:15px;
+
+    z-index:1000;
+
+    border:none;
+
+    padding:12px 18px;
+
+    border-radius:12px;
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+    color:white;
+
+    background:linear-gradient(
+        135deg,
+        #2d6a4f,
+        #43aa8b
+    );
+
+    box-shadow:0 10px 25px rgba(
+        0,
+        0,
+        0,
+        .35
+    );
+
+    display:none;
+}
+
+#settingsScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: grid;
+  place-items: center;
+  color: white;
+}
+
+#settingsScreen .bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(900px 450px at 70% 20%, rgba(45,106,79,0.28), transparent 60%),
+    radial-gradient(800px 500px at 20% 80%, rgba(67,170,139,0.18), transparent 60%),
+    linear-gradient(180deg, #05060a 0%, #0b0f14 60%, #05060a 100%);
+}
+
+.settingsGrid {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.settingsGrid label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  color: white;
+}
+
+.settingsGrid input {
+  width: 120px;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,.1);
+  color: white;
+}
+
+#playBtn,
+
+#settingsBtn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg,#2d6a4f 0%,#43aa8b 100%);
+  box-shadow: 0 14px 30px rgba(45,106,79,.35);
+}
+
     @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
   </style>
 </head>
 
 <body>
+   <button id="backBtn">
+    ⚙ Settings
+</button>
+
   <div id="startScreen">
     <div class="bg"></div>
     <div class="startCard">
@@ -117,9 +248,74 @@
         <b>Shift</b> — Fast camera
       </div>
 
-      <button id="startBtn">▶ Start Game</button>
-    </div>
+   
+
+<button id="settingsBtn">
+⚙ Physics Settings
+</button>    </div>
   </div>
+
+<!-- Settings Screen -->
+<div id="settingsScreen" style="display:none;">
+
+  <div class="bg"></div>
+
+  <div class="startCard">
+
+    <div class="logoDot"></div>
+
+    <h1>Physics Settings</h1>
+
+    <div class="sub">
+      Configure the simulation before starting
+    </div>
+
+    <div class="settingsGrid">
+
+      <label>
+        Ball Radius
+        <input id="ballRadius" type="number" step="0.1" value="3.2">
+      </label>
+
+      <label>
+        Ball Mass
+        <input id="ballMass" type="number" step="0.01" value="0.17">
+      </label>
+
+      <label>
+        Gravity
+        <input id="gravity" type="number" step="0.01" value="0.98">
+      </label>
+
+      <label>
+        Air Density
+        <input id="airDensity" type="number" step="0.0001" value="0.00126">
+      </label>
+
+      <label>
+        Sliding Friction
+        <input id="slideFriction" type="number" step="0.01" value="0.15">
+      </label>
+
+      <label>
+        Rolling Friction
+        <input id="rollFriction" type="number" step="0.001" value="0.012">
+      </label>
+
+      <label>
+        Cue Power
+        <input id="cuePower" type="number" step="0.1" value="2.5">
+      </label>
+
+    </div>
+
+    <button id="playBtn">
+      ▶ Start Simulation
+    </button>
+
+  </div>
+
+</div>
 
   <!-- Three.js global build (for main.js which uses global THREE) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

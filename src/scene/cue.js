@@ -5,6 +5,8 @@
 // The cylinder is built horizontally (along Z) by rotating only the
 // inner body mesh, keeping the Group's own rotation clean for yaw.
 
+import {state} from "../core/state.js"
+
 export function createCueStick(scene, cueBallMesh) {
   const cue = new THREE.Group();
   cue.name = "cueStick";
@@ -26,11 +28,11 @@ export function createCueStick(scene, cueBallMesh) {
 
   // Tip (dark ferrule) — sits at the +Z end of the body
   const tip = new THREE.Mesh(
-    new THREE.CylinderGeometry(tipRadius * 0.95, tipRadius * 0.95, 2.2, 18),
-    new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.9 })
+    new THREE.CylinderGeometry(tipRadius *0.95, tipRadius *0.95, 5, 18),
+    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.9 })
   );
   tip.rotation.x  = Math.PI / 2;
-  tip.position.z  = cueLength / 2 + 1.1;  // tip at the +Z (forward) end
+  tip.position.z  = cueLength / 2 + 2;  // tip at the +Z (forward) end
   tip.castShadow  = true;
   cue.add(tip);
 
@@ -38,8 +40,9 @@ export function createCueStick(scene, cueBallMesh) {
   cue.userData = {
     angle:       0,
     pullBack:    0,
-    maxPullBack: 25,
-    powerFactor: 2.5
+    maxPullBack: 35,
+    powerFactor: 2.5,
+     tilt: -0.15
   };
 
   scene.add(cue);

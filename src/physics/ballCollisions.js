@@ -8,8 +8,9 @@
 //   • cue / animation   ← تتولاها cuePhysics.js
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BALL_RADIUS   = 5.715;  // سم — كرة بلياردو قياسية
-const RESTITUTION   = 0.96;   // معامل الارتداد
+import {state} from "../core/state.js"
+
+const RESTITUTION   = 1;   // معامل الارتداد
 const ITERATIONS    = 8;      // تكرارات لحل التصادمات المتعددة (موجة صدمة)
 
 /**
@@ -42,10 +43,10 @@ function _resolveCollision(a, b) {
   const dx   = pb.x - pa.x;
   const dz   = pb.z - pa.z;
   // نتجاهل Y: الكرات على نفس الارتفاع — التصادم ثنائي الأبعاد (XZ)
-  const dist = Math.sqrt(dx * dx + dz * dz);
+  const dist = Math.hypot(dx, dz);
 
-  const ra      = a.radius ?? BALL_RADIUS;
-  const rb      = b.radius ?? BALL_RADIUS;
+  const ra      = a.radius ?? state.BALL.r;
+  const rb      = b.radius ?? state.BALL.r;
   const minDist = ra + rb;
 
   // لا تصادم

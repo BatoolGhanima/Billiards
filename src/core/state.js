@@ -17,7 +17,35 @@ export const state = {
     pocketRadius: 9
   },
 
+
+  //معلومات الكرة : نصف القطر، الكتلة
   BALL: { r: 3.2, m: 0.17 },
+
+//االخصائص الفيزيائية يدخلها  المستخدم وتتغير حسب نوع المحاكة
+  physics: {
+
+    gravity: 0.98,
+
+    airDensity: 0.00126,
+
+    dragCoefficient: 0.47,
+
+    slideFriction: 0.15,
+
+    rollFriction: 0.012
+
+  },
+
+
+//معلومات العصا
+cue: {
+
+  powerFactor: 2.5,
+
+  maxPullBack: 35
+
+},
+
 
   tableSurface: null,
   walls: [],

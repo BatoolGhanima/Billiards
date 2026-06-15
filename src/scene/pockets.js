@@ -22,21 +22,20 @@ export function createPockets(scene, TABLE) {
 
   centers.forEach(([x, z, r]) => {
     const hole = new THREE.Mesh(
-      new THREE.CylinderGeometry(r * 0.92, r * 0.92, holeDepth, 40), holeMat
-    );
+    new THREE.CylinderGeometry(r * 0.92, r * 0.92, holeDepth, 40), holeMat );
     hole.position.set(x, -holeDepth / 2 - 0.5, z);
     hole.receiveShadow = true;
     scene.add(hole);
 
     const mouth = new THREE.Mesh(
-      new THREE.CylinderGeometry(r * 1.05, r * 0.95, mouthDepth, 40), holeMat
+      new THREE.CylinderGeometry(r * 1.5, r * 0.95, mouthDepth, 40), holeMat
     );
     mouth.position.set(x, -mouthDepth / 2 + 0.2, z);
     mouth.receiveShadow = true;
     scene.add(mouth);
 
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(r * 1.05, 1.0, 12, 48), ringMat
+      new THREE.TorusGeometry(r * 1.5, 1.1, 12, 48), ringMat
     );
     ring.rotation.x = Math.PI / 2;
     ring.position.set(x, 0.25, z);

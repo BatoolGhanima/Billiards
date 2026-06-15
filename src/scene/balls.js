@@ -3,6 +3,9 @@
 // This is fine as long as THREE is loaded as a global script in index.html,
 // which it is. No changes needed to logic; cleaned up and confirmed correct.
 
+
+import {state} from "../core/state.js"
+
 export function createBalls(scene, TABLE, BALL) {
   const balls   = [];
   const ballGeo = new THREE.SphereGeometry(BALL.r, 32, 32);
@@ -15,13 +18,13 @@ export function createBalls(scene, TABLE, BALL) {
     const mesh = new THREE.Mesh(ballGeo, mat(color));
     mesh.castShadow    = true;
     mesh.receiveShadow = true;
-    mesh.position.set(x, BALL.r, z);
+    mesh.position.set(x,state.BALL.r, z);
 
     const obj = {
       name,
       mesh,
-      radius:          BALL.r,
-      mass:            BALL.m,
+      radius:          state.BALL.r,
+      mass:            state.BALL.m,
       velocity:        new THREE.Vector3(),
       angularVelocity: new THREE.Vector3(),
       force:           new THREE.Vector3(),
@@ -37,9 +40,9 @@ export function createBalls(scene, TABLE, BALL) {
   addBall("cue", 0xffffff, 0, TABLE.length * 0.25);
 
   // Rack — 5-row triangle
-  const rackApexZ = -TABLE.length * 0.25;
-  const dx = 2 * BALL.r + 0.2;              // tiny gap prevents overlap artifacts
-  const dz = Math.sqrt(3) * BALL.r + 0.1;
+  const rackApexZ = -TABLE.length * 0.18;
+  const dx = 2 * state.BALL.r + 0.2;              // tiny gap prevents overlap artifacts
+  const dz = Math.sqrt(3) * state.BALL.r + 0.1;
 
   const colors = [
     0xf94144, 0xf3722c, 0xf9c74f, 0x90be6d, 0x43aa8b,
