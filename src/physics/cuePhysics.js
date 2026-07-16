@@ -1,111 +1,272 @@
 // src/physics/cuePhysics.js
-// FIX SUMMARY:
-// 1. updateCue: cue.position.z now uses (+) cos — places cue on PLAYER side of ball
-// 2. updateCue: cue.rotation.y = PI - angle  — thin tip faces the ball
-// 3. strikeCue: sets a "striking" flag instead of teleporting velocity instantly
-// 4. updateStrikeAnimation: animates the cue forward each frame;
-//    velocity is only applied the moment the tip reaches the ball
-// 5. rotateCue: speed constant raised from 0.05 → 1.5 (was nearly imperceptible)
 
-const PULL_SPEED   = 18;   // units/sec — pulling back
-const STRIKE_SPEED = 500;  // units/sec — forward swing (fast snap)
-const ROTATE_SPEED = 1.5;  // rad/sec   — left / right aim
+import { state } from "../core/state.js";
+import { showFoul } from "../ui/foul.js";
 
-// ---------------------------------------------------------------------------
-// updateCue — called every frame to position & orient the cue
-//
-// Correct top-down layout (angle = 0):
-//   [butt] ——— [body] ——— [tip]  ←gap→  (○ cue ball)  ——→  [▽ rack]
-//
-//   Shot direction = ( sin(a),  0, -cos(a) )   ← angle=0 sends ball toward –Z (rack)
-//   Cue is BEHIND the ball (opposite of shot direction):
-//     cue.x = ball.x  –  sin(a) * distance
-//     cue.z = ball.z  +  cos(a) * distance   ← (+) puts cue on player side
-//
-//   rotation.y = PI – angle  makes the local +Z axis point in shot direction,
-//   so the tip (at local +Z) faces the ball from the player's side.
-// ---------------------------------------------------------------------------
-export function updateCue(cue, cueBallMesh) {
-  const angle    = cue.userData.angle;
-  const pullBack = cue.userData.pullBack;
+const THREE = window.THREE;
 
-  // Distance from ball centre to cue-group centre
-  // At pullBack = 0 the tip is flush with the ball surface
-  const distance = 80 + pullBack;
 
-  cue.position.set(
-    cueBallMesh.position.x - Math.sin(angle) * distance,
-    cueBallMesh.position.y + 15,                              // level with ball centre
-    cueBallMesh.position.z + Math.cos(angle) * distance  +5 // FIX: + not –
-  );
+// ثوابت الحركة
 
-  // FIX: was –angle (tip pointed wrong way); PI–angle aligns thin tip → ball
-  cue.rotation.y = Math.PI - angle;
-  cue.rotation.x = cue.userData.tilt;
-  cue.visible = true;
+const PULL_SPEED      = 18;
+const STRIKE_SPEED    = 520;
+const ROTATE_SPEED    = 1.8;
+const OFFSET_SPEED    = 1.2;
+const ELEVATION_SPEED = 2.0;
+
+
+// متجهات يعاد استخدامها
+
+const _shotDir     = new THREE.Vector3();  //اتجاه الضربة
+const _rightDir    = new THREE.Vector3();  //الاتجاه العمودي على اتجاخه الضربة
+const _impactPoint = new THREE.Vector3();  // نقطة ضرب العصا على الكرة 
+const _strikeDir   = new THREE.Vector3();  // لااتجاه النهائي الذي ستتحرك فيه الكرة
+
+
+// تدوير العصا
+
+//قانون الحركة الدورانية
+//θ= θ + ωΔt
+export function rotateCue(cue, dir, dt) {
+    cue.userData.angle += dir * ROTATE_SPEED * dt;
 }
 
-// ---------------------------------------------------------------------------
-// pullCue — hold P to draw the cue back
-// ---------------------------------------------------------------------------
+
+// سحب العصا
+
 export function pullCue(cue, dt) {
-  cue.userData.pullBack += PULL_SPEED * dt;
-  cue.userData.pullBack  = Math.min(cue.userData.pullBack, cue.userData.maxPullBack);
-}
 
-// ---------------------------------------------------------------------------
-// rotateCue — L key = aim left (+1), R key = aim right (–1)
-// ---------------------------------------------------------------------------
-export function rotateCue(cue, direction, dt) {
-  // FIX: was 0.05 * dt — nearly imperceptible; raised to ROTATE_SPEED
-  cue.userData.angle += direction * ROTATE_SPEED * dt;
-}
+    //تطبيق قانون الحركة المنتظمة x=x+vt
+    cue.userData.pullBack += PULL_SPEED * dt;
 
-// ---------------------------------------------------------------------------
-// strikeCue — Space key: BEGIN the forward-swing animation.
-//   Does NOT touch ball.velocity directly — that happens in updateStrikeAnimation
-//   when the tip physically reaches the ball.
-// ---------------------------------------------------------------------------
-export function strikeCue(cue, ball) {
-  if (cue.userData.pullBack <= 0)    return;  // nothing pulled back → no shot
-  if (cue.userData.striking)         return;  // already mid-swing
-
-  // Save power calculated from how far back we pulled
-  cue.userData.strikePower  = cue.userData.pullBack * cue.userData.powerFactor;
-  cue.userData.striking     = true;
-  cue.userData.strikeTarget = ball;           // ball object (has .velocity)
-}
-
-// ---------------------------------------------------------------------------
-// updateStrikeAnimation — call every frame from the main loop.
-//   Slides the cue forward; fires the ball the instant pullBack hits 0.
-// ---------------------------------------------------------------------------
-export function updateStrikeAnimation(cue, dt) {
-  if (!cue.userData.striking) return;
-
-  // Advance cue toward ball
-  cue.userData.pullBack -= STRIKE_SPEED * dt;
-
-  if (cue.userData.pullBack <= 0) {
-    cue.userData.pullBack = 0;
-
-    // ── TIP CONTACTS BALL — transfer kinetic energy ──────────────────────
-    const ball  = cue.userData.strikeTarget;
-    const angle = cue.userData.angle;
-    const power = cue.userData.strikePower;
-
-    // FIX: direction uses –cos so angle=0 fires toward –Z (rack), not +Z
-    const direction = new THREE.Vector3(
-      Math.sin(angle),
-      0,
-      -Math.cos(angle)
+    //تفيد السحب بحيث يكون بين الصفر و pullmax
+    cue.userData.pullBack = THREE.MathUtils.clamp(
+        cue.userData.pullBack,
+        0,
+        cue.userData.maxPullBack
     );
-    ball.velocity.add(direction.multiplyScalar(power));
-    // ─────────────────────────────────────────────────────────────────────
+}
 
-    // Reset strike state
+
+// رفع العصا
+
+export function elevateCue(cue, dir, dt) {
+    cue.userData.elevation += dir * ELEVATION_SPEED * dt;
+    cue.userData.elevation = THREE.MathUtils.clamp(
+        cue.userData.elevation,
+        0,
+        cue.userData.maxElevation
+    );
+}
+
+
+// تحريك نقطة الضرب أفقياً
+
+export function moveImpactX(cue, dir, dt) {
+    cue.userData.offsetX += dir * OFFSET_SPEED * dt;
+    cue.userData.offsetX = THREE.MathUtils.clamp(
+        cue.userData.offsetX,
+        -cue.userData.maxOffset,
+        cue.userData.maxOffset
+    );
+}
+
+
+// تحريك نقطة الضرب عمودياً
+export function moveImpactY(cue, dir, dt) {
+    cue.userData.offsetY += dir * OFFSET_SPEED * dt;
+    cue.userData.offsetY = THREE.MathUtils.clamp(
+        cue.userData.offsetY,
+        -cue.userData.maxOffset,
+        cue.userData.maxOffset
+    );
+}
+
+
+// تحديث موقع العصا 
+
+export function updateCue(cue, cueBallMesh) {
+    const angle     = cue.userData.angle ?? 0;
+    const pullBack  = cue.userData.pullBack ?? 0;
+    const elevation = cue.userData.elevation ?? 0;
+    const offsetX   = cue.userData.offsetX ?? 0;
+    const offsetY   = cue.userData.offsetY ?? 0;
+
+    const r         = state.BALL?.cueRadius ?? 3.2;
+    const cueLength = cue.userData.length ?? 145;
+
+    // ── اتجاه الضربة 
+    //تحويل الزاوية إلى متجه
+    _shotDir.set(Math.sin(angle), 0, -Math.cos(angle)).normalize();
+
+    // ── الاتجاه الجانبي 
+    _rightDir.set(Math.cos(angle), 0, Math.sin(angle)).normalize();
+
+    // ── نقطة التلامس على سطح الكرة 
+    _impactPoint.copy(cueBallMesh.position)
+        .addScaledVector(_rightDir, offsetX * r)
+        .setY(cueBallMesh.position.y + offsetY * r);
+
+    // ── المسافة من نقطة التلامس إلى مركز العصا ──────────────────────────
+    const tipOffset = 3.5;
+    const gap       = 0.8;
+    const armLength = cueLength / 10 + tipOffset + gap + pullBack;
+
+    // ── موقع مركز العصا 
+    cue.position.copy(_impactPoint) // تبدأ من نقطة الاصطدام
+        .addScaledVector(_shotDir, -armLength); //ثم ترجع العصا للخلف
+
+    // ── رفع العصا من الجذع 
+    const baseLift = 10.0;
+    if (elevation > 0.01) {
+        const halfLength = cueLength / 2;
+        const liftAmount = Math.sin(elevation) * halfLength * 0.5;
+        cue.position.y = _impactPoint.y + liftAmount + baseLift;
+        cue.rotation.x = -elevation;
+    } else {
+        cue.position.y = _impactPoint.y + baseLift;
+        cue.rotation.x = -0.05;
+    }
+
+    // ── منع العصا من الغوص في الطاولة 
+    cue.position.y = Math.max(cue.position.y, r + 2.0);
+
+    // ── منع اختراق الجدران 
+    const margin = 8;
+    const halfW  = state.TABLE.width  / 2 - margin;
+    const halfL  = state.TABLE.length / 2 - margin;
+    cue.position.x = THREE.MathUtils.clamp(cue.position.x, -halfW, halfW);
+    cue.position.z = THREE.MathUtils.clamp(cue.position.z, -halfL, halfL);
+
+    // ── تدوير العصا أفقياً 
+    cue.rotation.y = Math.PI - angle;
+
+    cue.visible = true;
+}
+
+
+// //==================================================
+// // وميض الكرة عند الخطأ
+// //==================================================
+function _flashBall(ball) {
+    if (!ball || !ball.mesh) return;
+    const oldColor = ball.mesh.material.color.getHex();
+    ball.mesh.material.color.set(0xff0000);
+    setTimeout(() => {
+        ball.mesh.material.color.set(oldColor);
+    }, 500);}
+
+
+
+
+// بدء الضربة (حفظ القيمة الابتدائية للسحب لضبط سرعة ووصول الأنيميشن)
+
+export function strikeCue(cue, ball) {
+    if (ball.name !== "cue") {
+        showFoul();
+        return;
+    }
+
+    if (cue.userData.striking) return;
+    if (cue.userData.pullBack <= 0) return;
+
+    cue.userData.striking     = true;
+    cue.userData.strikeTarget = ball;
+    cue.userData.strikePower  = cue.userData.pullBack * (state.cue?.powerFactor ?? 120);
+
+    // حفظ معلومات نقطة الضرب
+    cue.userData.hitElevation = cue.userData.elevation ?? 0;
+    cue.userData.hitOffsetX   = cue.userData.offsetX ?? 0;
+    cue.userData.hitOffsetY   = cue.userData.offsetY ?? 0;
+
+    // : حفظ المسافة الكلية التي يجب أن تقطعها العصا لتصل وتلمس الكرة تماماً
+    const cueLength = cue.userData.length ?? 145;
+    const tipOffset = 3.5;
+    const gap       = 0.8;
+    // المسافة الثابتة المتبقية حتى التلامس الصفر الصريح
+    const baseArmLength = cueLength / 10 + tipOffset + gap; 
+    
+    // الأنيميشن سيبدأ من (baseArmLength + pullBack) وينتهي عند الصفر الحقيقي للتلامس
+    cue.userData.strikeProgress = cue.userData.pullBack;
+}
+
+
+// تنفيذ حركة الضربة حتى التلامس 100%
+
+export function updateStrikeAnimation(cue, dt) {
+    if (!cue.userData.striking) return;
+
+    // تحريك العصا للأمام بسرعة عالية عبر تقليص المسافة المتبقية
+    cue.userData.pullBack -= STRIKE_SPEED * dt;
+
+    // الطول الفعلي المتبقي في الفضاء للوصول للمس الصريح للكرة
+    const cueLength = cue.userData.length ?? 145;
+    const tipOffset = 3.5;
+    const gap       = 0.8;
+    const baseArmLength = cueLength / 10 + tipOffset + gap;
+
+    const minPullBackAllowed = -baseArmLength;
+
+    if (cue.userData.pullBack < minPullBackAllowed) {
+        cue.userData.pullBack = minPullBackAllowed;
+    }
+
+    // تحديث موقع العصا المرئي أثناء اندفاعها للأمام
+    if (cue.userData.strikeTarget) {
+        updateCue(cue, cue.userData.strikeTarget.mesh);
+    }
+
+    // الشرط الحاسم: لا تطلق الكرة حتى يستهلك الأنيميشن كل المسافة الفاصلة وتلمس الكرة 100%
+    if (cue.userData.pullBack > minPullBackAllowed) return;
+
+    // ── لحظة التصادم الفعلي مية بالمية 
+    const ball = cue.userData.strikeTarget;
+    if (!ball) return;
+
+    const power     = cue.userData.strikePower;
+    const angle     = cue.userData.angle ?? 0;
+    const elevation = cue.userData.hitElevation ?? 0;
+    const offsetX   = cue.userData.hitOffsetX ?? 0;
+    const offsetY   = cue.userData.hitOffsetY ?? 0;
+
+    // حساب سرعة انطلاق الكرة بناءً على القوة المحفوظة
+    const energy = Math.max(power, 100);
+    const velocity = Math.sqrt((2 * energy) / Math.max(ball.mass, 0.001));
+
+    // اتجاه الضربة
+    _strikeDir.set(Math.sin(angle), 0, -Math.cos(angle)).normalize();
+
+    // تعيين السرعة للكرة في نفس لحظة الملامسة البصرية والفيزيائية
+    //السرعة = الاتجاه * السرعة
+    ball.velocity.copy(_strikeDir).multiplyScalar(velocity);
+
+    // إخفاء العصا فوراً بعد اللمس
+    cue.visible = false;
+
+    // ضربة القفز إذا كانت العصا مرتفعة
+    if (elevation > 0.2) {
+        ball.velocity.y += Math.sin(elevation) * velocity * 0.5;
+    }
+
+    // حساب وتخزين الطاقة في الكرة البيضاء
+    if (!ball.energy) ball.energy = {};
+    ball.energy.kinetic = 0.5 * ball.mass * ball.velocity.length() ** 2; //قانون الطاقة الحركية
+    ball.energy.potential = ball.mass * state.physics.gravity * (ball.mesh.position.y - ball.radius) * 35; // الطاقة الكامنة E
+    ball.energy.total = ball.energy.kinetic + ball.energy.potential;
+
+    // تدوير الكرة (Spin) بناءً على نقطة الضرب
+    //الضربة خارج مركز الكرة تولد عزم دوران
+    if (!ball.angularVelocity) ball.angularVelocity = new THREE.Vector3();
+    const spinFactor = 0.42;
+    ball.angularVelocity.x += offsetY * velocity * spinFactor; //بتولد دوران حول محور إكس إذا كانت الضربة أعلى و أسفل
+    ball.angularVelocity.z -= offsetX * velocity * spinFactor; // يتولد دوران حول محور زيد إذا كانت الضربة يمين أو يسار 
+
+    if (!ball.spin) ball.spin = new THREE.Vector3();
+    ball.spin.set(offsetX, 0, offsetY);
+
+    // إعادة تعيين متغيرات العصا للاستعداد للضربة التالية وتصفير السحب
     cue.userData.striking     = false;
     cue.userData.strikeTarget = null;
     cue.userData.strikePower  = 0;
-  }
+    cue.userData.pullBack     = 0; 
 }

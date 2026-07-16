@@ -1,16 +1,20 @@
 // src/scene/pockets.js
-// No logic bugs. Confirmed correct — no changes needed.
+
+//دالة تستقبل السين لأإضافة المجسمات إلى المشهد
+//تستقل table للحصول على أبعاد الطاولة
 export function createPockets(scene, TABLE) {
   const pockets   = [];
-  const inset     = TABLE.wallThickness * 0.9;
-  const rCorner   = TABLE.pocketRadius * 1.05;
-  const rSide     = TABLE.pocketRadius * 0.95;
-  const holeDepth = 18;
-  const mouthDepth = 2.5;
+  const inset     = TABLE.wallThickness * 0.9; // بعيد   الفتحة عن الحافة
+  const rCorner   = TABLE.pocketRadius * 1.05; //نصف قطر جيوب الزوايا
+  const rSide     = TABLE.pocketRadius * 0.95; // الجيوب الجانبية
+  const holeDepth = 18; //عمق الجيب
+  const mouthDepth = 2.5; // عمق فوهة الجيب
 
+  //إنشاء مادة سوداء
   const holeMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1 });
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6, metalness: 0.7 });
 
+  //مواقع الجيوب
   const centers = [
     [ TABLE.width / 2 - inset,  TABLE.length / 2 - inset, rCorner],
     [-TABLE.width / 2 + inset,  TABLE.length / 2 - inset, rCorner],
@@ -20,13 +24,16 @@ export function createPockets(scene, TABLE) {
     [-TABLE.width / 2 + inset,  0, rSide],
   ];
 
+  //حلقة تمر على جميع الجيوب
   centers.forEach(([x, z, r]) => {
+
+    //تنشئ الحفرة بشكل أسطوامة
     const hole = new THREE.Mesh(
     new THREE.CylinderGeometry(r * 0.92, r * 0.92, holeDepth, 40), holeMat );
     hole.position.set(x, -holeDepth / 2 - 0.5, z);
     hole.receiveShadow = true;
     scene.add(hole);
-
+//إنشاء فوهة الجيب
     const mouth = new THREE.Mesh(
       new THREE.CylinderGeometry(r * 1.5, r * 0.95, mouthDepth, 40), holeMat
     );
@@ -42,6 +49,7 @@ export function createPockets(scene, TABLE) {
     ring.castShadow = true;
     scene.add(ring);
 
+    //حفظ بيانات الجيوب في المصفوفة
     pockets.push({ x, z, r });
   });
 

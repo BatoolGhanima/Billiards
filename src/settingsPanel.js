@@ -1,4 +1,6 @@
-import { state } from "../src/core/state.js";
+// src/settingsPanel.js
+
+import { state } from "./core/state.js";
 
 export function createSettingsPanel() {
 
@@ -19,14 +21,29 @@ export function createSettingsPanel() {
 
   panel.style.width = "250px";
 
-  panel.innerHTML = 
+  panel.innerHTML = "<h3>Physics Panel</h3>";
+
   document.body.appendChild(panel);
 
-  document.getElementById("ballRadius").value =
-    state.BALL.r;
+  // ── ربط القيم من state إلى الـ inputs ─────────────────────────────────
+  
+  document.getElementById("cueRadius").value =
+    state.BALL.cueRadius;
 
-  document.getElementById("ballMass").value =
-    state.BALL.m;
+  document.getElementById("cueMass").value =
+    state.BALL.cueMass;
+
+  document.getElementById("objectRadius").value =
+    state.BALL.objectRadius;
+
+  document.getElementById("objectMass").value =
+    state.BALL.objectMass;
+
+  document.getElementById("ballMaterial").value =
+    state.BALL.material;
+
+  document.getElementById("ballConfiguration").value =
+    state.BALL.configuration;
 
   document.getElementById("gravity").value =
     state.physics.gravity;
@@ -40,16 +57,37 @@ export function createSettingsPanel() {
   document.getElementById("rollFriction").value =
     state.physics.rollFriction;
 
+  document.getElementById("clothType").value =
+    state.physics.clothType;
+
   document.getElementById("cuePower").value =
-    state.physics.cuePowerFactor;
+    state.cue.powerFactor;
 
-  document.getElementById("ballRadius")
-    .oninput = e =>
-      state.BALL.r = Number(e.target.value);
+  // ── ربط التغييرات من الـ inputs إلى state ────────────────────────────
 
-  document.getElementById("ballMass")
+  document.getElementById("cueRadius")
     .oninput = e =>
-      state.BALL.m = Number(e.target.value);
+      state.BALL.cueRadius = Number(e.target.value);
+
+  document.getElementById("cueMass")
+    .oninput = e =>
+      state.BALL.cueMass = Number(e.target.value);
+
+  document.getElementById("objectRadius")
+    .oninput = e =>
+      state.BALL.objectRadius = Number(e.target.value);
+
+  document.getElementById("objectMass")
+    .oninput = e =>
+      state.BALL.objectMass = Number(e.target.value);
+
+  document.getElementById("ballMaterial")
+    .onchange = e =>
+      state.BALL.material = e.target.value;
+
+  document.getElementById("ballConfiguration")
+    .onchange = e =>
+      state.BALL.configuration = e.target.value;
 
   document.getElementById("gravity")
     .oninput = e =>
@@ -67,7 +105,11 @@ export function createSettingsPanel() {
     .oninput = e =>
       state.physics.rollFriction = Number(e.target.value);
 
+  document.getElementById("clothType")
+    .onchange = e =>
+      state.physics.clothType = e.target.value;
+
   document.getElementById("cuePower")
     .oninput = e =>
-      state.physics.cuePowerFactor = Number(e.target.value);
+      state.cue.powerFactor = Number(e.target.value);
 }

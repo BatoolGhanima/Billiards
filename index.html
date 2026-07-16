@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Billiard Game</title>
+  <title>3D Billiard - Physics Simulation</title>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { overflow: hidden; background: #05060a; font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
     canvas { display: block; }
 
+    /* ===== Start Screen ===== */
     #startScreen {
       position: fixed;
       inset: 0;
@@ -69,7 +70,6 @@
     }
 
     h1 { font-size: 22px; margin-bottom: 8px; letter-spacing: 0.4px; }
-
     .sub { font-size: 13px; opacity: 0.75; line-height: 1.6; margin-bottom: 18px; }
 
     /* Controls hint */
@@ -85,7 +85,8 @@
     }
     .controls b { color: #43aa8b; }
 
-    #startBtn {
+    /* Buttons */
+    #startBtn, #settingsBtn, #playBtn {
       appearance: none; border: none; cursor: pointer;
       padding: 12px 18px; border-radius: 12px;
       font-size: 15px; font-weight: 800; color: #ffffff;
@@ -93,231 +94,320 @@
       box-shadow: 0 14px 30px rgba(45,106,79,0.35);
       transition: transform 0.08s ease, filter 0.2s ease;
       min-width: 170px;
+      margin: 5px;
     }
-    #startBtn:hover { filter: brightness(1.06); }
-    #startBtn:active { transform: scale(0.985); }
+    #startBtn:hover, #settingsBtn:hover, #playBtn:hover { filter: brightness(1.06); }
+    #startBtn:active, #settingsBtn:active, #playBtn:active { transform: scale(0.985); }
 
     #startScreen.fadeOut { animation: fadeOut 0.35s ease forwards; }
+    @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
 
-#physicsPanel{
-    position:fixed;
-    top:20px;
-    right:20px;
+    /* Back Button */
+    #backBtn {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1000;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(135deg, #2d6a4f, #43aa8b);
+      box-shadow: 0 10px 25px rgba(0,0,0,.35);
+      display: none;
+    }
 
-    width:260px;
+    /* Settings Screen */
+    #settingsScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 11;
+      display: none;
+      place-items: center;
+      color: white;
+    }
 
-    background:rgba(0,0,0,.75);
+    #settingsScreen .bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(900px 450px at 70% 20%, rgba(45,106,79,0.28), transparent 60%),
+        radial-gradient(800px 500px at 20% 80%, rgba(67,170,139,0.18), transparent 60%),
+        linear-gradient(180deg, #05060a 0%, #0b0f14 60%, #05060a 100%);
+    }
 
-    color:white;
+    .settingsGrid {
+      display: grid;
+      gap: 12px;
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
 
-    padding:15px;
+    .settingsGrid label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      color: white;
+      font-size: 13px;
+    }
 
-    border-radius:12px;
+    .settingsGrid input,
+    .settingsGrid select {
+      width: 120px;
+      padding: 6px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,.1);
+      color: white;
+    }
 
-    z-index:20;
-}
+    .settingsGrid select option {
+      background: #222;
+      color: white;
+    }
 
-#physicsPanel h3{
-    margin-bottom:10px;
-}
-
-#physicsPanel label{
-    display:block;
-    margin-bottom:10px;
-    font-size:12px;
-}
-
-#physicsPanel input{
-    width:100%;
-    margin-top:4px;
-    padding:4px;
-}
-
-#backBtn{
-    position:fixed;
-
-    top:15px;
-    left:15px;
-
-    z-index:1000;
-
-    border:none;
-
-    padding:12px 18px;
-
-    border-radius:12px;
-
-    cursor:pointer;
-
-    font-weight:bold;
-
-    color:white;
-
-    background:linear-gradient(
-        135deg,
-        #2d6a4f,
-        #43aa8b
-    );
-
-    box-shadow:0 10px 25px rgba(
-        0,
-        0,
-        0,
-        .35
-    );
-
-    display:none;
-}
-
-#settingsScreen {
+    /* Foul Message */
+    #foulMessage {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 48px;
+      font-weight: bold;
+      color: red;
+      display: none;
+      z-index: 999;
+      text-shadow: 0 0 20px rgba(255,0,0,0.5);
+    }
+   /* ===== Game Over Screen (Matched Style) ===== */
+#gameOverScreen {
   position: fixed;
   inset: 0;
-  z-index: 11;
-  display: grid;
+  z-index: 12;
+  display: none; /* مخفي افتراضياً ويظهر برمجياً */
   place-items: center;
-  color: white;
+  color: #fff;
 }
 
-#settingsScreen .bg {
+#gameOverScreen .bg {
   position: absolute;
   inset: 0;
+  /* نفس الخلفية المتدرجة للواجهات الأخرى */
   background:
     radial-gradient(900px 450px at 70% 20%, rgba(45,106,79,0.28), transparent 60%),
     radial-gradient(800px 500px at 20% 80%, rgba(67,170,139,0.18), transparent 60%),
     linear-gradient(180deg, #05060a 0%, #0b0f14 60%, #05060a 100%);
 }
 
-.settingsGrid {
-  display: grid;
-  gap: 12px;
-  margin: 20px 0;
+.gameOverCard {
+  position: relative;
+  width: min(450px, 92vw);
+  border-radius: 18px;
+  padding: 40px 26px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+  text-align: center;
 }
 
-.settingsGrid label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-  color: white;
+/* النقطة المضيئة المعتمدة في شعار اللعبة */
+.gameOverCard .logoDot {
+  width: 16px; 
+  height: 16px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #2d6a4f;
+  box-shadow: 0 0 22px rgba(45,106,79,0.95);
 }
 
-.settingsGrid input {
-  width: 120px;
-  padding: 6px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255,255,255,.1);
-  color: white;
+.gameOverCard h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+  letter-spacing: 0.4px;
 }
 
-#playBtn,
+.gameOverCard .sub {
+  font-size: 13px;
+  opacity: 0.75;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
 
-#settingsBtn {
-  appearance: none;
-  border: none;
+/* الزر بنفس التدرج الأخضر والمظهر التفاعلي لباقي الأزرار */
+#restartBtn {
+  appearance: none; 
+  border: none; 
   cursor: pointer;
-  padding: 12px 18px;
+  padding: 12px 24px; 
   border-radius: 12px;
-  font-size: 15px;
-  font-weight: 800;
-  color: #fff;
-  background: linear-gradient(135deg,#2d6a4f 0%,#43aa8b 100%);
-  box-shadow: 0 14px 30px rgba(45,106,79,.35);
+  font-size: 15px; 
+  font-weight: 800; 
+  color: #ffffff;
+  background: linear-gradient(135deg, #2d6a4f 0%, #43aa8b 100%);
+  box-shadow: 0 14px 30px rgba(45,106,79,0.35);
+  transition: transform 0.08s ease, filter 0.2s ease;
+  min-width: 170px;
+}
+#restartBtn:hover { filter: brightness(1.06); }
+#restartBtn:active { transform: scale(0.985); }
+/* ===== Score Counter (Top Right) ===== */
+#scoreContainer {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  pointer-events: none; /* لمنع حجب النقرات عن عناصر الـ Three.js خلفه */
 }
 
-    @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+.scoreLabel {
+  font-size: 13px;
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+}
+
+#scoreText {
+  font-size: 18px;
+  font-weight: 800;
+  color: #43aa8b; /* نفس اللون الأخضر الفاتح المعتمد في أزرارك */
+  text-shadow: 0 0 10px rgba(67, 170, 139, 0.4);
+}
   </style>
 </head>
 
 <body>
-   <button id="backBtn">
-    ⚙ Settings
-</button>
+  <!-- Foul Message -->
+  <div id="foulMessage">FOUL!</div>
 
+  <!-- Back Button -->
+  <button id="backBtn">⚙ Settings</button>
+
+  <!-- Start Screen -->
   <div id="startScreen">
     <div class="bg"></div>
     <div class="startCard">
       <div class="logoDot"></div>
       <h1>3D Billiard</h1>
-      <div class="sub">Ready to play?</div>
+      <div class="sub">Advanced Physics Simulation</div>
 
       <div class="controls">
         <b>L / R</b> — Rotate cue &nbsp;|&nbsp; <b>P</b> — Pull back cue<br>
         <b>Space</b> — Strike &nbsp;|&nbsp; <b>WASD</b> — Move camera<br>
         <b>Arrows</b> — Rotate camera &nbsp;|&nbsp; <b>Q / E</b> — Up / Down<br>
-        <b>Shift</b> — Fast camera
+        <b>Shift</b> — Fast camera &nbsp;|&nbsp; <b>U/J</b> — Top/Back spin<br>
+        <b>I/K</b> — Side spin &nbsp;|&nbsp; <b>O</b> — Elevate cue<br>
+        <b>Tab</b> — Select ball &nbsp;|&nbsp; <b>C</b> — Cue camera
       </div>
 
-   
-
-<button id="settingsBtn">
-⚙ Physics Settings
-</button>    </div>
+      <button id="settingsBtn">⚙ Physics Settings</button>
+    </div>
   </div>
 
-<!-- Settings Screen -->
-<div id="settingsScreen" style="display:none;">
+  <!-- Settings Screen -->
+  <div id="settingsScreen">
+    <div class="bg"></div>
+    <div class="startCard">
+      <div class="logoDot"></div>
+      <h1>Physics Settings</h1>
+      <div class="sub">Configure the simulation before starting</div>
 
+      <div class="settingsGrid">
+        <label>
+          Cue Ball Radius
+          <input id="cueRadius" type="number" step="0.1" value="3.2">
+        </label>
+        <label>
+          Cue Ball Mass
+          <input id="cueMass" type="number" step="0.01" value="0.17">
+        </label>
+        <label>
+          Object Ball Radius
+          <input id="objectRadius" type="number" step="0.1" value="3.2">
+        </label>
+        <label>
+          Object Ball Mass
+          <input id="objectMass" type="number" step="0.01" value="0.17">
+        </label>
+        <label>
+          Ball Material
+          <select id="ballMaterial">
+            <option value="plastic">Plastic (Standard)</option>
+            <option value="wood">Wood</option>
+            <option value="steel">Steel</option>
+          </select>
+        </label>
+        <label>
+          Ball Configuration
+          <select id="ballConfiguration">
+            <option value="allSolid">All Solid</option>
+            <option value="allHollow">All Hollow</option>
+            <option value="cueHollow">Cue Hollow / Others Solid</option>
+            <option value="cueSolid">Cue Solid / Others Hollow</option>
+          </select>
+        </label>
+        <label>
+          Gravity
+          <input id="gravity" type="number" step="0.01" value="0.98">
+        </label>
+        <label>
+          Air Density
+          <input id="airDensity" type="number" step="0.0001" value="0.00126">
+        </label>
+        <label>
+          Sliding Friction
+          <input id="slideFriction" type="number" step="0.01" value="0.15">
+        </label>
+        <label>
+          Rolling Friction
+          <input id="rollFriction" type="number" step="0.001" value="0.012">
+        </label>
+        <label>
+          Cloth Type
+          <select id="clothType">
+            <option value="fast">Fast Cloth</option>
+            <option value="normal" selected>Normal Cloth</option>
+            <option value="slow">Slow Cloth</option>
+          </select>
+        </label>
+        <label>
+          Cue Power
+          <input id="cuePower" type="number" step="0.1" value="120">
+        </label>
+      </div>
+
+      <button id="playBtn">▶ Start Simulation</button>
+    </div>
+  </div>
+  <!-- Game Over Screen -->
+<div id="gameOverScreen">
   <div class="bg"></div>
-
-  <div class="startCard">
-
-    <div class="logoDot"></div>
-
-    <h1>Physics Settings</h1>
-
-    <div class="sub">
-      Configure the simulation before starting
-    </div>
-
-    <div class="settingsGrid">
-
-      <label>
-        Ball Radius
-        <input id="ballRadius" type="number" step="0.1" value="3.2">
-      </label>
-
-      <label>
-        Ball Mass
-        <input id="ballMass" type="number" step="0.01" value="0.17">
-      </label>
-
-      <label>
-        Gravity
-        <input id="gravity" type="number" step="0.01" value="0.98">
-      </label>
-
-      <label>
-        Air Density
-        <input id="airDensity" type="number" step="0.0001" value="0.00126">
-      </label>
-
-      <label>
-        Sliding Friction
-        <input id="slideFriction" type="number" step="0.01" value="0.15">
-      </label>
-
-      <label>
-        Rolling Friction
-        <input id="rollFriction" type="number" step="0.001" value="0.012">
-      </label>
-
-      <label>
-        Cue Power
-        <input id="cuePower" type="number" step="0.1" value="2.5">
-      </label>
-
-    </div>
-
-    <button id="playBtn">
-      ▶ Start Simulation
-    </button>
-
+  <div class="gameOverCard">
+    <h1> Game Over !</h1>
+    <p class="sub">   black ball dropped into the pocket </p>
+    <button id="restartBtn" onclick="location.reload();"> Back to Begining </button>
   </div>
-
 </div>
-
-  <!-- Three.js global build (for main.js which uses global THREE) -->
+<!-- Score Counter -->
+<div id="scoreContainer">
+  <span class="scoreLabel">Scores:</span>
+  <span id="scoreText">0</span>
+</div>
+  <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>

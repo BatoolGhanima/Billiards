@@ -1,7 +1,4 @@
 // src/physics/wall.js
-// BUG FIX: Wall boundaries must account for the wall thickness so balls
-// bounce off the inner face of the cushions, not the table centre-line.
-// Added wallThickness to the half-extents.
 
 export function solveWallCollision(ball, TABLE) {
   // Inner playing surface edges
@@ -13,7 +10,7 @@ export function solveWallCollision(ball, TABLE) {
   // X walls
   if (ball.mesh.position.x > halfW - r) {
     ball.mesh.position.x = halfW - r;
-    ball.velocity.x *= -0.75; // BUG FIX: pure -1 reflection is lossless.
+    ball.velocity.x *= -0.75; 
   }                            // Real cushions absorb ~25% energy.
 
   if (ball.mesh.position.x < -halfW + r) {

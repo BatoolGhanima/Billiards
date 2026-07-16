@@ -1,88 +1,148 @@
 // src/physics/ballCollision.js
-// ─────────────────────────────────────────────────────────────────────────────
-// يحل التصادمات بين جميع الكرات (كرة العصا ↔ كرات المثلث ↔ بعضها)
-// ─────────────────────────────────────────────────────────────────────────────
-// ما لا يُلمس هنا أبداً:
-//   • ball.mesh.scale   ← تصادم الكرات لا يغيّر حجمها
-//   • ball.mesh.position.y  ← الحركة على محور Y تتولاها motion.js فقط
-//   • cue / animation   ← تتولاها cuePhysics.js
-// ─────────────────────────────────────────────────────────────────────────────
 
-import {state} from "../core/state.js"
+import { state } from "../core/state.js";
 
-const RESTITUTION   = 1;   // معامل الارتداد
-const ITERATIONS    = 8;      // تكرارات لحل التصادمات المتعددة (موجة صدمة)
+const RESTITUTION = 0.95; // تصادم شبه مرن معامل الارتداد
+const ITERATIONS = 8; //عدد المرات التي تعيج فيها الخوارزمية حساب التصادم ضمن كل فريم
 
-/**
- * solveBallCollisions — استدعاءها كل إطار بعد updateLinearMotion
- * @param {Array} balls  — كل الكرات في المشهد (بما فيها المنجيبة تُتجاهل)
- */
+// متغير للاحتفاظ بالصوت وتجنب حظر المتصفح
+let hitSound = null; 
+
+// دالة لتهيئة الصوت بأمان بعد تفاعل المستخدم
+function _initSound() {
+  if (!hitSound) {
+    hitSound = new Audio("ball_hit.mp3");
+    hitSound.preload = "auto"; 
+  }
+}
+
+function playCollisionSound(relativeVelocity) {
+  _initSound();
+
+  if (!hitSound) return;
+
+  // استنساخ الصوت للسماح بتداخل الأصوات
+  const soundClone = hitSound.cloneNode();
+  
+  // ضبط مستوى الصوت بناءً على السرعة النسبية للتصادم
+  let volume = Math.min(relativeVelocity / 150, 1);
+  
+  // تجاهل الأصوات الضعيفة الناتجة عن الاحتكاك البسيط
+  if (volume > 0.05) {
+    soundClone.volume = volume;
+    soundClone.play().catch(() => {
+      // تجنب أخطاء المتصفح إذا لم يتفاعل المستخدم بعد
+    });
+  }
+}
+
+//دالة حساب التصادم تستدعى كل فريم
 export function solveBallCollisions(balls) {
-  // نصفّي فقط الكرات النشطة (غير منجيبة وموجودة في المشهد)
-  const active = balls.filter(b => !b.pocketed && b.mesh.parent);
 
-  if (active.length < 2) return;
+  // فحص آمن لمنع الانهيار والتأكد من وجود الكرات داخل المشهد
+  const active = balls.filter(b => b && !b.pocketed && b.mesh && b.mesh.parent);
+  if (active.length < 2) return; // إذا كان في أقل من كرتين لا تعمل تصادم
 
-  // تكرارات متعددة → تنتج تلقائياً تأثير الموجة التسلسلية عبر المثلث
+
+  //الحلقة الأولى تعيد الحل 8 مرات
   for (let iter = 0; iter < ITERATIONS; iter++) {
+    // تمر على الكرة الأولى
     for (let i = 0; i < active.length; i++) {
+
+     // تمر على بقية الكرات
       for (let j = i + 1; j < active.length; j++) {
-        _resolveCollision(active[i], active[j]);
+        _resolveCollision(active[i], active[j]); // هذه تح لالتصادم
       }
     }
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// الدالة الداخلية — تحل تصادم كرتين
-// ─────────────────────────────────────────────────────────────────────────────
+
+//دالة حل التصادم
 function _resolveCollision(a, b) {
-  const pa = a.mesh.position;
-  const pb = b.mesh.position;
+  const pa = a.mesh.position; //موقع الكرة الأولى
+  const pb = b.mesh.position; //موقع الثانية
 
-  const dx   = pb.x - pa.x;
-  const dz   = pb.z - pa.z;
-  // نتجاهل Y: الكرات على نفس الارتفاع — التصادم ثنائي الأبعاد (XZ)
-  const dist = Math.hypot(dx, dz);
+  //حساب الفرق لحسا بالمسافة
+  const dx = pb.x - pa.x;
+  const dz = pb.z - pa.z;
 
-  const ra      = a.radius ?? state.BALL.r;
-  const rb      = b.radius ?? state.BALL.r;
+  //حساب المسافة بين نقطتين
+  const dist = Math.hypot(dx, dz); // هذه الدالة تربع الأول و تربع الثاني وتعيد المجموع
+
+  const ra = a.radius ?? state.BALL.cueRadius;
+  const rb = b.radius ?? state.BALL.objectRadius;
+
   const minDist = ra + rb;
 
-  // لا تصادم
+  //إذا كانت المسافة أكبر من مجموعي نصفي القطرين لا يوجد تصادم
   if (dist >= minDist || dist < 1e-6) return;
 
-  // ── 1. اتجاه التصادم (a → b) ──────────────────────────────────────────
-  const nx = dx / dist;
-  const nz = dz / dist;
-
-  // ── 2. تصحيح التداخل — الكرات تُدفع للخارج دون تغيير scale ──────────
-  const overlap = (minDist - dist) * 0.5;
-  pa.x -= nx * overlap;
-  pa.z -= nz * overlap;
-  pb.x += nx * overlap;
-  pb.z += nz * overlap;
-
-  // ── 3. السرعة النسبية على محور التصادم ───────────────────────────────
-  const dvx = b.velocity.x - a.velocity.x;
-  const dvz = b.velocity.z - a.velocity.z;
-  const velAlongNormal = dvx * nx + dvz * nz;
-
-  // الكرتان تتباعدان أصلاً — لا نحتاج impulse
-  if (velAlongNormal > 0) return;
-
-  // ── 4. حساب النبضة (Impulse) ──────────────────────────────────────────
+  // ── حساب الطاقة قبل التصادم ──────────────────────────────────────────
   const ma = a.mass ?? 1;
   const mb = b.mass ?? 1;
+  const Ek_before = 0.5 * ma * a.velocity.length() ** 2 + 
+                    0.5 * mb * b.velocity.length() ** 2;
 
+  // ── اتجاه التصادم ────────────────────────────────────────────────────
+  const nx = dx / dist;  //تقسيم متجه المسافة على طوله لينتج متجه وحدة طوله دائما 1
+  const nz = dz / dist;
+
+  // ── تصحيح التداخل ────────────────────────────────────────────────────
+  const overlap = (minDist - dist) * 0.5;
+  pa.x -= nx * overlap; //يرجع الأولى للخلف
+  pa.z -= nz * overlap;
+  pb.x += nx * overlap; //يدفع الثانية للأمام
+  pb.z += nz * overlap;
+
+  // ── السرعة النسبية ──────────────────────────────────────────────────
+  const dvx = b.velocity.x - a.velocity.x;
+  const dvz = b.velocity.z - a.velocity.z;
+  const velAlongNormal = dvx * nx + dvz * nz; //إسقط السرعة على اتجاه التصادم
+
+  if (velAlongNormal > 0) return; //
+
+  // ── التعديل الجديد: تشغيل الصوت فقط إذا كانت أحد الكرتين المتصادمتين هي الكرة البيضاء ──
+  if (a.name === "cue" || b.name === "cue") {
+    const hitIntensity = Math.abs(velAlongNormal);
+    playCollisionSound(hitIntensity);
+  }
+
+  // ── حساب النبضة 
+  //كمية الحركة المنقولة أثناء التصادم
   const impulse = -(1 + RESTITUTION) * velAlongNormal / (1 / ma + 1 / mb);
 
-  // ── 5. تطبيق النبضة على سرعة كل كرة ─────────────────────────────────
-  a.velocity.x -= (impulse / ma) * nx;
+  // ── تطبيق النبضة 
+
+  //كل كرة تأخذ جزءا من كمية الحركة حسب كتلتها
+  a.velocity.x -= (impulse / ma) * nx; //تقل سرعة الأولى
   a.velocity.z -= (impulse / ma) * nz;
-
-  b.velocity.x += (impulse / mb) * nx;
+  b.velocity.x += (impulse / mb) * nx; // تزداد سرعة الثانية
   b.velocity.z += (impulse / mb) * nz;
+  
+  //إذا كانت الجاذبية صغيرة مثل القمر
+  //والسرعة كبيرة
+  //تقفز الكرات
+if (state.physics.gravity < 0.3) { 
+  const collisionSpeed = Math.abs(velAlongNormal);
+  
+  // إذا كان التصادم قوياً بما يكفي، تندفع الكرات للأعلى قليلاً
+  if (collisionSpeed > 20) { 
+    const liftFactor = 0.02; // معامل الرفع على المحور العمودي
+    
+    // إعطاء سرعة عمودية صغيرة للكرتين بناءً على قوة الاصطدام
+    a.velocity.y += collisionSpeed * liftFactor;
+    b.velocity.y += collisionSpeed * liftFactor;
+  }
+}
+  // ── حساب الطاقة بعد التصادم 
+  const Ek_after = 0.5 * ma * a.velocity.length() ** 2 + 
+                   0.5 * mb * b.velocity.length() ** 2;
+  const E_collisionLost = Math.max(0, Ek_before - Ek_after);
 
-  // ملاحظة: لا نمس a.velocity.y / b.velocity.y لأن الكرات ثابتة رأسياً
+  // ── تخزين الطاقة المفقودة في الكرات 
+  if (!a.energy) a.energy = {};
+  if (!b.energy) b.energy = {};
+  a.energy.collisionLost = (a.energy.collisionLost || 0) + E_collisionLost * 0.5;
+  b.energy.collisionLost = (b.energy.collisionLost || 0) + E_collisionLost * 0.5;
 }

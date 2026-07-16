@@ -1,11 +1,23 @@
 // src/core/state.js
+
 export const state = {
   started: false,
   scene: null,
   camera: null,
+  
+  // كاميرا العصا
+  cameraMode: "free",
+  savedCamera: {
+    position: new THREE.Vector3(),
+    yaw: 0,
+    pitch: 0
+  },
+  
   renderer: null,
   clock: null,
 
+
+  //الطاولة
   TABLE: {
     width: 160,
     length: 320,
@@ -17,41 +29,79 @@ export const state = {
     pocketRadius: 9
   },
 
+  // معلومات الكرات
+  BALL: {
+    cueRadius: 3.2,    
+    cueMass: 0.17,        
+    objectRadius: 3.2,    
+    objectMass: 0.17,      
+       
+    configuration: "allSolid",
+    material: "plastic"
+  },
 
-  //معلومات الكرة : نصف القطر، الكتلة
-  BALL: { r: 3.2, m: 0.17 },
-
-//االخصائص الفيزيائية يدخلها  المستخدم وتتغير حسب نوع المحاكة
+  // الخصائص الفيزيائية
   physics: {
-
     gravity: 0.98,
-
     airDensity: 0.00126,
 
+    //معامل السحب
     dragCoefficient: 0.47,
 
+    //احتكاك الازنلاق ميو
     slideFriction: 0.15,
 
-    rollFriction: 0.012
+    //التدحرج
+    rollFriction: 0.012,
 
+    clothType: "normal"
+  },
+
+  // معلومات العصا
+  cue: {
+    powerFactor: 120,
+    maxPullBack: 35,    
+    angle: 0,
+
+    //بُعد العصا عن الكرةة
+    distance: 60,
+
+    //السحب اللحظي
+    pullBack: 0,
+
+    pullSpeed: 40,
+    tilt: 0,
+
+    //زاوية رفع العصا
+    elevation: 0.3,      
+    maxElevation: 0.9,    
+    offsetX: 0,           //  نقطة الضرب أفقياً
+    offsetY: 0,           // نقطة الضرب عمودياً
+    maxOffset: 0.85,      //  أقصى إزاحة
+    length: 145,          //  طول العصا
+
+    //نقطة تأثر الضربة على العصا
+    spinOffset: new THREE.Vector2(0, 0), 
+    //هل الكرة تُضرب
+    striking: false,      
+    strikeTarget: null,  // الكرة المستهدفة
+    strikePower: 0,       //  لحظة الضرب قوة الضربة
+    hitElevation: 0,      
+    hitOffsetX: 0,      
+    hitOffsetY: 0,        
+    visible: true          
   },
 
 
-//معلومات العصا
-cue: {
 
-  powerFactor: 2.5,
-
-  maxPullBack: 35
-
-},
-
-
+  //عناصر عالم اللعبة
   tableSurface: null,
   walls: [],
   pockets: [],
   balls: [],
   cueStick: null,
+  
+  selectedBallIndex: 0,
 
   input: {
     keys: Object.create(null),
@@ -59,11 +109,5 @@ cue: {
     pitch: -0.7
   },
 
-  cue: {
-    angle: 0,
-    distance: 60,
-    pullBack: 0,
-    maxPullBack: 28,
-    pullSpeed: 40
-  }
+  energyDisplay: null  // لعرض الطاقة
 };

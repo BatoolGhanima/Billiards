@@ -1,50 +1,155 @@
 // src/scene/cue.js
-// ROOT FIX: The cue is now a flat mesh (not a Group with a pre-baked
-// rotation.x). This way updateCue can freely set rotation.y (yaw around
-// the table's up-axis) without fighting any parent-group transform.
-// The cylinder is built horizontally (along Z) by rotating only the
-// inner body mesh, keeping the Group's own rotation clean for yaw.
 
-import {state} from "../core/state.js"
+import { state } from "../core/state.js";
 
 export function createCueStick(scene, cueBallMesh) {
-  const cue = new THREE.Group();
-  cue.name = "cueStick";
 
-  const cueLength  = 140;
-  const buttRadius = 1.6;
-  const tipRadius  = 0.75;
 
-  // Body — cylinder default is along Y; rotate it 90° on X so it lies
-  // along Z (into the table). The Group itself stays un-rotated so that
-  // setting cue.rotation.y later gives a clean horizontal yaw.
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(tipRadius, buttRadius, cueLength, 110),
-    new THREE.MeshStandardMaterial({ color: 0xb07d43, roughness: 0.65, metalness: 0.05 })
-  );
-  body.rotation.x = Math.PI / 2;   // ← rotation on the MESH, not the Group
-  body.castShadow = true;
-  cue.add(body);
+    //إنشاء مجموعة أجسا العصا
+    const cue = new THREE.Group();
+    cue.name = "cueStick";
 
-  // Tip (dark ferrule) — sits at the +Z end of the body
-  const tip = new THREE.Mesh(
-    new THREE.CylinderGeometry(tipRadius *0.95, tipRadius *0.95, 5, 18),
-    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.9 })
-  );
-  tip.rotation.x  = Math.PI / 2;
-  tip.position.z  = cueLength / 2 + 2;  // tip at the +Z (forward) end
-  tip.castShadow  = true;
-  cue.add(tip);
+    // أبعاد العصا
 
-  // userData drives all physics — Group starts with no rotation
-  cue.userData = {
-    angle:       0,
-    pullBack:    0,
-    maxPullBack: 35,
-    powerFactor: 2.5,
-     tilt: -0.15
-  };
+    const cueLength  = 140;
+    const buttRadius = 1.6; // نصف قطر الطرف الخلفي 
+    const tipRadius  = 0.75;
 
-  scene.add(cue);
-  return cue;
+          --
+    // Pivot
+    // سيكون رأس العصا هو نقطة الارتكاز
+          --
+
+    const pivot = new THREE.Group();
+    cue.add(pivot);
+
+    // جسم العصا
+
+    const body = new THREE.Mesh(
+ 
+        //شكل هندسي أسطوانة لرسم الكرة 
+        new THREE.CylinderGeometry(
+            tipRadius,
+            buttRadius,
+            cueLength,
+            80
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+            color:0xb07d43, //لون خشبي
+            roughness:0.65, //خشونة الخشب جسم الكرة
+            metalness:0.05 // العصا ليست معدنية لذلك تأثير المعدن قيمته صغيرة
+
+        })
+
+    );
+ //تدوير العصا لأنها افتراضيا على محور Y لذللك ندورها
+    body.rotation.x = Math.PI/2;
+
+    // نحرك الجسم للخلف بحيث تصبح نقطة الصفر عند الرأس
+    body.position.z = -cueLength/2;
+
+    body.castShadow = true;
+
+    pivot.add(body);
+
+    // رأس العصا
+
+    const tip = new THREE.Mesh(
+
+        new THREE.CylinderGeometry(
+
+            tipRadius*0.95,
+            tipRadius*0.95,
+            5,
+            18
+
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+            color:0xffffff,
+            roughness:0.9
+
+        })
+
+    );
+
+    tip.rotation.x = Math.PI/2;
+
+    tip.position.z = 2.5;
+
+    tip.castShadow = true;
+
+    pivot.add(tip); // إضافة الرأس لنقطة الدوران
+
+    // مرجع الرأس
+    
+
+    //تخزين معلومات العصا
+    cue.userData.tip = tip;
+
+    cue.userData.pivot = pivot;
+
+    // بيانات العصا
+
+    cue.userData.length = cueLength;
+
+    cue.userData.angle = 0;
+
+    cue.userData.pullBack = 0;
+
+    cue.userData.maxPullBack = 35;
+
+    cue.userData.powerFactor = 120;
+
+    // الإمالة
+
+    cue.userData.elevation = 0;
+
+    cue.userData.maxElevation =
+
+        THREE.MathUtils.degToRad(30);
+
+    // مكان الضرب
+    cue.userData.offsetX = 0; //إذا كان صفر يعني ضرب مركز الكرة
+
+    cue.userData.offsetY = 0;
+
+    cue.userData.maxOffset = 0.85;
+
+    
+    // أثناء الضربة
+    
+
+    cue.userData.striking = false;
+
+    cue.userData.strikeTarget = null;
+
+    cue.userData.strikePower = 0;
+
+    
+    // Spin
+    
+
+    cue.userData.spinOffset =
+//متجه ثنائي الأبعاد لتحديد مكان الضربة أعلى أسفل يمين يسار
+        new THREE.Vector2();
+
+    
+//متتغيرات خاصة بالضربة    
+
+    cue.userData.hitElevation = 0;
+
+    cue.userData.hitOffsetX = 0;
+
+    cue.userData.hitOffsetY = 0;
+
+          --
+
+    scene.add(cue);
+
+    return cue;
+
 }
